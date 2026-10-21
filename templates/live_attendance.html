@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Live Attendance{% endblock %}
+{% block content %}
+<h4 class="mb-3">Live Attendance</h4>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="panel">
+      <label class="form-label">Subject</label>
+      <select id="subjectSelect" class="form-select mb-3">
+        <option value="">-- choose a subject --</option>
+        {% for s in subjects %}<option value="{{ s['id'] }}">{{ s['subject_name'] }} ({{ s['subject_code'] }})</option>{% endfor %}
+      </select>
+      <button id="startBtn" class="btn btn-primary w-100" disabled>Start Live Attendance</button>
+      <button id="stopBtn" class="btn btn-outline-danger w-100 mt-2 d-none">Stop Session</button>
+    </div>
+    <div class="panel">
+      <h6>Session Status</h6>
+      <p class="mb-1">Marked: <strong id="markedCount">0</strong></p>
+      <p class="mb-1">Last recognized: <strong id="lastRecognized">—</strong></p>
+      <div id="markedList" class="mt-2" style="font-size:0.85rem;"></div>
+    </div>
+  </div>
+  <div class="col-md-8"><div class="panel"><div id="cameraArea" class="text-center text-muted py-5" style="border:1px dashed #ccc; border-radius:8px;">Choose a subject and start.</div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const subjectSelect = document.getElementById('subjectSelect');
+const startBtn = document.getElementById('startBtn');
+const cameraArea = document.getElementById('cameraArea');
+const markedCount = document.getElementById('markedCount');
+const lastRecognized = document.getElementById('lastRecognized');
+const markedList = document.getElementById('markedList');
+let pollTimer = null;
+subjectSelect.addEventListener('change', () => { startBtn.disabled = !subjectSelect.value; });
+
+startBtn.addEventListener('click', async () => {
+  const subjectId = subjectSelect.value;
+  if (!subjectId) return;
+  startBtn.disabled = true; subjectSelect.disabled = true; startBtn.textContent = 'Starting...';
+  const res = await fetch('/face/attendance/start', {
+    method: 'POST',
+    headers: {'X-CSRF-Token': CSRF, 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({subject_id: subjectId})
+  });
+  if (!res.ok) { lastRecognized.textContent = 'Could not start session'; startBtn.disabled = false; subjectSelect.disabled = false; startBtn.textContent = 'Start Live Attendance'; return; }
+  cameraArea.innerHTML = `<img src="/face/stream?t=${Date.now()}" class="camera-frame" alt="camera feed">`;
+  startBtn.textContent = 'Running...';
+  document.getElementById('stopBtn').classList.remove('d-none');
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    const status = await (await fetch('/face/attendance_status')).json();
+    markedCount.textContent = status.marked_count;
+    lastRecognized.textContent = status.last_recognized || '—';
+    markedList.innerHTML = status.marked_students.map(s => `<span class="badge bg-success me-1 mb-1">${s}</span>`).join('');
+    if (status.error) lastRecognized.textContent = 'Error: ' + status.error;
+  }, 1000);
+});
+
+document.getElementById('stopBtn').addEventListener('click', async () => {
+  await fetch('/face/stop', {method: 'POST', headers: {'X-CSRF-Token': CSRF}});
+  clearInterval(pollTimer);
+  document.getElementById('stopBtn').classList.add('d-none');
+  startBtn.disabled = !subjectSelect.value; subjectSelect.disabled = false; startBtn.textContent = 'Start Live Attendance';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Reports & Analytics{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Reports & Analytics</h4>
+  <a href="{{ url_for('reports.download_pdf', section=filters.section, subject_id=filters.subject_id or '', start_date=filters.start_date, end_date=filters.end_date) }}" class="btn btn-primary btn-sm">
+    Download Full PDF Report
+  </a>
+</div>
+
+<!-- Filter Toolbar -->
+<div class="panel mb-3">
+  <form method="GET" action="{{ url_for('reports.reports_page') }}" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label small fw-bold mb-1">Section</label>
+      <select name="section" class="form-select form-select-sm">
+        <option value="">All Sections</option>
+        {% for sec in sections %}
+        <option value="{{ sec }}" {% if filters.section == sec %}selected{% endif %}>Section {{ sec }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small fw-bold mb-1">Subject</label>
+      <select name="subject_id" class="form-select form-select-sm">
+        <option value="">All Subjects</option>
+        {% for sub in subjects %}
+        <option value="{{ sub['id'] }}" {% if filters.subject_id == sub['id'] %}selected{% endif %}>
+          {{ sub['subject_code'] }} - {{ sub['subject_name'] }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-bold mb-1">Start Date</label>
+      <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-bold mb-1">End Date</label>
+      <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date }}">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Filter</button>
+      <a href="{{ url_for('reports.reports_page') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Visual Reports -->
+<div class="panel mb-3">
+  <h6 class="mb-3">Visual Reports</h6>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <img src="{{ url_for('reports.chart_png', chart_name='attendance_trend', section=filters.section, subject_id=filters.subject_id or '', start_date=filters.start_date, end_date=filters.end_date) }}" class="img-fluid rounded border" alt="Attendance Trend">
+    </div>
+    <div class="col-md-6">
+      <img src="{{ url_for('reports.chart_png', chart_name='risk_distribution', section=filters.section) }}" class="img-fluid rounded border" alt="Risk Distribution">
+    </div>
+    <div class="col-md-6">
+      <img src="{{ url_for('reports.chart_png', chart_name='attendance_by_subject', section=filters.section, start_date=filters.start_date, end_date=filters.end_date) }}" class="img-fluid rounded border" alt="Attendance by Subject">
+    </div>
+    <div class="col-md-6">
+      <img src="{{ url_for('reports.chart_png', chart_name='feature_importance') }}" class="img-fluid rounded border" alt="Feature Importance">
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Breakdowns -->
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="panel mb-0 h-100">
+      <h6 class="mb-2">Attendance by Student</h6>
+      <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Section</th>
+              <th class="text-end">Sessions Attended</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for st in attendance_by_student %}
+            <tr>
+              <td>{{ st['student_id'] }}</td>
+              <td>{{ st['name'] }}</td>
+              <td>{{ st['section'] or '-' }}</td>
+              <td class="text-end fw-semibold">{{ st['sessions_attended'] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted text-center py-2">No student attendance recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel mb-0 h-100">
+      <h6 class="mb-2">Attendance by Subject</h6>
+      <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Subject</th>
+              <th class="text-end">Total Marked</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in attendance_by_subject %}
+            <tr>
+              <td><strong>{{ sub['subject_code'] }}</strong></td>
+              <td>{{ sub['subject_name'] }}</td>
+              <td class="text-end fw-semibold">{{ sub['total_marked'] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-muted text-center py-2">No subject attendance recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- At-Risk Students Panel -->
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0">At-Risk Students</h6>
+    <a href="{{ url_for('reports.export_at_risk_csv', section=filters.section) }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Name</th>
+          <th>Section</th>
+          <th>Predicted Score</th>
+          <th>Risk</th>
+          <th>Predicted On</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in at_risk %}
+        <tr>
+          <td>{{ r['student_id'] }}</td>
+          <td>{{ r['name'] }}</td>
+          <td>{{ r['section'] or '-' }}</td>
+          <td>{{ r['predicted_score'] }}</td>
+          <td>
+            <span class="badge {{ 'badge-risk-medium' if r['risk_level']=='Medium' else 'badge-risk-high' }}">
+              {{ r['risk_level'] }}
+            </span>
+          </td>
+          <td>{{ r['created_at'] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted text-center py-3">No at-risk students for selected filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

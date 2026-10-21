@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}ML Training{% endblock %}
+{% block content %}
+<h4 class="mb-3">ML Training</h4>
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="panel">
+      <h6>Train / Retrain Model</h6>
+      <p class="text-muted" style="font-size:0.86rem;">
+        Trains on the synthetic baseline dataset using 3 features (Attendance %, Marks Average %,
+        Previous GPA): cross-validated comparison of Linear Regression / Decision Tree / Random Forest,
+        then hyperparameter tuning of the winner. Runs in the background. A new model is only promoted
+        if it's at least as good as the live one, and promotion automatically refreshes every
+        student's prediction.
+      </p>
+      {% if session.get('role') == 'admin' %}
+      <form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-primary w-100" {{ 'disabled' if active_job }}>Train / Retrain Model</button></form>
+      {% else %}
+      <p class="text-muted mb-0">Only an admin can start training.</p>
+      {% endif %}
+      <div id="jobPanel" class="job-panel mt-3 {{ '' if active_job else 'd-none' }}">
+        <div class="progress"><div id="jobBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%">0%</div></div>
+        <p id="jobText" class="text-muted mt-2 mb-0" style="font-size:0.85rem;">Waiting…</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h6>Drift Monitor <small class="text-muted">(live students vs. training baseline)</small></h6>
+      {% if not drift_report %}
+        <p class="text-muted mb-0">Train a model first to capture a baseline.</p>
+      {% elif drift_report.insufficient_data %}
+        <p class="text-muted mb-0">Not enough students with complete data yet ({{ drift_report.n_students }} found, need at least 5).</p>
+      {% else %}
+        {% if drift_report.any_drift %}<p class="text-danger mb-2">⚠ Drift detected across {{ drift_report.n_students }} students — consider retraining.</p>
+        {% else %}<p class="text-success mb-2">✓ No significant drift across {{ drift_report.n_students }} students.</p>{% endif %}
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Feature</th><th>Live mean</th><th>Baseline</th><th>Shift</th></tr></thead>
+          <tbody>
+            {% for feature, d in drift_report.features.items() %}
+            <tr class="{{ 'table-warning' if d.drifted }}"><td>{{ feature.replace('_',' ').title() }}</td><td>{{ d.mean_now }}</td><td>{{ d.mean_baseline }}</td><td>{{ d.relative_shift_pct }}%</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    {% if metrics %}
+    <div class="panel">
+      <h6>Live Model — {{ metrics.selected_model.replace('_',' ').title() }} <small class="text-muted">{{ metrics.version }}</small></h6>
+      <table class="table table-sm">
+        <thead><tr><th>Model (5-fold CV)</th><th>Mean MAE</th><th>Mean R²</th></tr></thead>
+        <tbody>
+          {% for name, stats in metrics.cv_comparison.items() %}
+          <tr class="{{ 'table-success' if name == metrics.selected_model }}">
+            <td>{{ name.replace('_',' ').title() }} {% if name == metrics.selected_model %}<span class="badge bg-success">Selected</span>{% endif %}</td>
+            <td>{{ stats.mae_mean }} ± {{ stats.mae_std }}</td><td>{{ stats.r2_mean }} ± {{ stats.r2_std }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if metrics.best_params %}
+      <h6 class="mt-3">Tuned hyperparameters</h6>
+      <table class="table table-sm">{% for k, v in metrics.best_params.items() %}<tr><td>{{ k.replace('model__','') }}</td><td>{{ v }}</td></tr>{% endfor %}</table>
+      {% endif %}
+      <h6 class="mt-3">Held-out evaluation</h6>
+      <table class="table table-sm">
+        <tr><th>MAE</th><td>{{ metrics.mae }} points</td></tr>
+        <tr><th>R²</th><td>{{ metrics.r2_score }}</td></tr>
+        <tr><th>Train / Test rows</th><td>{{ metrics.n_train }} / {{ metrics.n_test }}</td></tr>
+        <tr><th>Data source</th><td>Synthetic baseline dataset (real student data is used for prediction, not training)</td></tr>
+      </table>
+      {% if metrics.feature_importances %}
+      <h6 class="mt-3">Feature importance</h6>
+      <table class="table table-sm">{% for feature, importance in metrics.feature_importances.items() %}<tr><td>{{ feature.replace('_',' ').title() }}</td><td>{{ (importance*100)|round(1) }}%</td></tr>{% endfor %}</table>
+      {% elif metrics.coefficients %}
+      <h6 class="mt-3">Feature coefficients (standardized)</h6>
+      <table class="table table-sm">{% for feature, coef in metrics.coefficients.items() %}<tr><td>{{ feature.replace('_',' ').title() }}</td><td>{{ coef }}</td></tr>{% endfor %}</table>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="panel text-muted">No model trained yet. An admin can click "Train / Retrain Model".</div>
+    {% endif %}
+
+    <div class="panel">
+      <h6>Model Registry — Version History</h6>
+      <table class="table table-sm">
+        <thead><tr><th>Version</th><th>Model</th><th>MAE</th><th>R²</th><th>Trained</th><th></th></tr></thead>
+        <tbody>
+          {% for v in versions %}
+          <tr class="{{ 'table-success' if v.is_current }}">
+            <td>{{ v.version }} {% if v.is_current %}<span class="badge bg-success">Live</span>{% endif %}</td>
+            <td>{{ v.selected_model.replace('_',' ').title() if v.selected_model else '—' }}</td>
+            <td>{{ v.mae }}</td><td>{{ v.r2_score }}</td><td>{{ v.created_at[:19] }}</td>
+            <td>{% if not v.is_current and session.get('role') == 'admin' %}<form method="POST" action="{{ url_for('predictions.ml_rollback', version=v.version) }}" onsubmit="return confirm('Roll back to {{ v.version }}?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-sm btn-outline-secondary">Roll back</button></form>{% endif %}</td>
+          </tr>
+          {% else %}<tr><td colspan="6" class="text-muted text-center py-3">No versions trained yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const activeJob = {{ (active_job or '')|tojson }};
+if (activeJob) {
+  const bar = document.getElementById('jobBar'), text = document.getElementById('jobText');
+  const timer = setInterval(async () => {
+    const job = await (await fetch('/jobs/' + activeJob)).json();
+    bar.style.width = job.progress + '%'; bar.textContent = job.progress + '%';
+    text.textContent = job.message || '';
+    if (job.status === 'succeeded' || job.status === 'failed') {
+      clearInterval(timer);
+      bar.classList.remove('progress-bar-animated');
+      text.textContent = job.status === 'failed' ? 'Failed: ' + job.error : 'Finished — reloading results…';
+      if (job.status === 'succeeded') setTimeout(() => location.reload(), 800);
+    }
+  }, 700);
+}
+</script>
+{% endblock %}

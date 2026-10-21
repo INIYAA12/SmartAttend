@@ -1,0 +1,212 @@
+[
+  {
+    "step": 1,
+    "name": "Login",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Both Admin and Teacher authenticated successfully, sessions issued."
+  },
+  {
+    "step": 2,
+    "name": "Dashboard",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Dashboard loads HTTP 200 with KPI stat cards, trend chart, and model info."
+  },
+  {
+    "step": 3,
+    "name": "Admin creates/registers a subject",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Subject 'Cloud Security Testing' (CS999) created with DB id 9."
+  },
+  {
+    "step": 4,
+    "name": "Admin registers a student",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Student STU_AUDIT_01 successfully stored in DB with GPA 8.5."
+  },
+  {
+    "step": 5,
+    "name": "Student biometric face registration dropdown",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Student STU_AUDIT_01 is selectable in face registration UI."
+  },
+  {
+    "step": 6,
+    "name": "Teacher selects the subject in live attendance",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Subject CS999 is present in teacher's dropdown across both /face/live_attendance and /face/attendance."
+  },
+  {
+    "step": 7,
+    "name": "Live face-recognition attendance worker",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Attendance worker started session, status polled, and stopped cleanly."
+  },
+  {
+    "step": 8,
+    "name": "Verify attendance is stored correctly",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Attendance record persisted in DB: date=2026-10-21, status=Present."
+  },
+  {
+    "step": 9,
+    "name": "Verify duplicate attendance is prevented",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Atomic INSERT OR IGNORE and UNIQUE(student_id, subject_id, date) prevented duplicate."
+  },
+  {
+    "step": 10,
+    "name": "Check student's attendance percentage",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Computed 1.3% successfully from attendance records."
+  },
+  {
+    "step": 11,
+    "name": "Enter academic marks for student",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Mark entered (40/50, 80.0%) and saved to database."
+  },
+  {
+    "step": 12,
+    "name": "Reopen the same exam and edit marks",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Marks updated in place from 40 to 45 (90.0%)."
+  },
+  {
+    "step": 13,
+    "name": "Verify no duplicate exam/mark records are created",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Exactly 1 record remains in DB under UNIQUE(student_id, subject_id, exam_name)."
+  },
+  {
+    "step": 14,
+    "name": "Train/retrain the ML model",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Model comparison completed: selected linear_regression (MAE=2.516, R2=0.905)."
+  },
+  {
+    "step": 15,
+    "name": "Generate predictions",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Generated prediction: Score=59.24, Risk=Medium, Category=Poor."
+  },
+  {
+    "step": 16,
+    "name": "Verify feature data origin",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Features verified from DB records: GPA=8.5, MarksAvg=93.0%, Att=1.3%."
+  },
+  {
+    "step": 17,
+    "name": "Verify missing-data students handled correctly",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Safely rejected prediction with exact missing fields: ['marks (no exams entered yet)', \"previous GPA (set it on the student's profile)\"]."
+  },
+  {
+    "step": 18,
+    "name": "Open student profile and verify consistency",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Profile displays correct attendance sessions, marks (Mid Term 1: 45/50), and live prediction."
+  },
+  {
+    "step": 19,
+    "name": "Verify dashboard KPIs update correctly",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Dashboard matches DB: Total Students=47, Present Today=1."
+  },
+  {
+    "step": 20,
+    "name": "Verify risk distribution updates correctly",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Dashboard risk cards match latest_predictions DB view: Low=19, Med=18, High=6."
+  },
+  {
+    "step": 21,
+    "name": "Verify 7-day attendance trend",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "7-day trend line chart rendered with dates and counts from DB."
+  },
+  {
+    "step": 22,
+    "name": "Verify section-wise performance calculation",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Section-wise performance comparison table rendered on dashboard with enrolled counts, average attendance %, and average marks %."
+  },
+  {
+    "step": 23,
+    "name": "Generate filtered reports",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Filtered reports form exists."
+  },
+  {
+    "step": 24,
+    "name": "Export CSV",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "CSV generated successfully (25 rows)."
+  },
+  {
+    "step": 25,
+    "name": "Export PNG",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Matplotlib PNG generated successfully (34876 bytes)."
+  },
+  {
+    "step": 26,
+    "name": "Export combined PDF",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Multi-page PDF report compiled successfully (42916 bytes)."
+  },
+  {
+    "step": 27,
+    "name": "Test Admin permissions enforcement",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Admin-only endpoints (/admin/users, /admin/audit, delete student, ml/train) strictly redirect non-admins."
+  },
+  {
+    "step": 28,
+    "name": "Test Teacher permissions scope",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Teacher permissions strictly constrained (access to /students/add and /syllabus/add blocked)."
+  },
+  {
+    "step": 29,
+    "name": "Test audit logging",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Audit trail verified: recorded actions ['model.trained', 'model.train_requested', 'marks.save', 'marks.save', 'attendance.session_start']."
+  },
+  {
+    "step": 30,
+    "name": "Test logout/session behavior",
+    "status": "PASS",
+    "test_type": "REAL_EXECUTION",
+    "details": "Session cleared on logout, subsequent access to protected route redirects to /login."
+  }
+]

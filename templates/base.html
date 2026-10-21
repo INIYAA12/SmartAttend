@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>{% block title %}Smart Attendance System{% endblock %}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+{% if session.get('user_id') %}
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">🎓</span>
+      <span>Smart Attendance</span>
+    </div>
+    <ul class="nav flex-column sidebar-nav">
+      <li><a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if request.endpoint == 'dashboard.index' }}">Dashboard</a></li>
+      <li><a href="{{ url_for('students.list_students') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('students.') }}">Students</a></li>
+      <li><a href="{{ url_for('syllabus.syllabus_list') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('syllabus.') }}">Syllabus Management</a></li>
+      <li><a href="{{ url_for('face.register_page') }}" class="{{ 'active' if request.endpoint == 'face.register_page' }}">Face Registration</a></li>
+      <li><a href="{{ url_for('face.live_attendance_page') }}" class="{{ 'active' if request.endpoint == 'face.live_attendance_page' }}">Live Attendance</a></li>
+      <li><a href="{{ url_for('attendance.records') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('attendance.') }}">Attendance Records</a></li>
+      <li><a href="{{ url_for('academic.academic_list') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('academic.') }}">Academic Data</a></li>
+      <li><a href="{{ url_for('predictions.ml_training') }}" class="{{ 'active' if request.endpoint == 'predictions.ml_training' }}">ML Training</a></li>
+      <li><a href="{{ url_for('predictions.prediction_page') }}" class="{{ 'active' if request.endpoint == 'predictions.prediction_page' }}">Performance Prediction</a></li>
+      <li><a href="{{ url_for('reports.reports_page') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('reports.') }}">Reports</a></li>
+      {% if session.get('role') == 'admin' %}
+      <li class="nav-section">Admin</li>
+      <li><a href="{{ url_for('admin.users') }}" class="{{ 'active' if request.endpoint == 'admin.users' }}">Users</a></li>
+      <li><a href="{{ url_for('admin.audit_log') }}" class="{{ 'active' if request.endpoint == 'admin.audit_log' }}">Audit Log</a></li>
+      {% endif %}
+    </ul>
+    <div class="sidebar-footer">
+      {% if demo_mode() %}<div class="demo-badge" title="Seeded demo data — not real student records">DEMO DATA</div>{% endif %}
+      <div class="user-chip">{{ session.get('username') }} <span class="role-badge">{{ session.get('role') }}</span></div>
+      <a href="{{ url_for('admin.change_password') }}" class="btn btn-sm btn-outline-light w-100 mt-2">Change password</a>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light w-100 mt-2">Logout</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div class="container-fluid py-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'danger' else category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

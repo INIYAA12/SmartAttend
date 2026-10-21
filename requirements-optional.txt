@@ -1,0 +1,3 @@
+# Optional: FAISS vector search for very large face galleries.
+# The app works without it (NumPy search is used automatically).
+faiss-cpu

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block auth_content %}
+<div class="login-wrapper">
+  <div class="login-card">
+    <h4 class="mb-1">🎓 Smart Attendance System</h4>
+    <p class="text-muted mb-4">Sign in to continue</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} py-2">{{ message }}</div>{% endfor %}{% endif %}
+    {% endwith %}
+    <form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required autofocus></div>
+      <div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+      <button type="submit" class="btn btn-primary w-100">Log In</button>
+    </form>
+    <p class="text-muted mt-3 mb-0" style="font-size:0.8rem;">Demo: <code>admin / admin123</code> or <code>teacher_a / teacher123</code></p>
+  </div>
+</div>
+{% endblock %}

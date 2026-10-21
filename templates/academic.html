@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Academic Data{% endblock %}
+{% block content %}
+<h4 class="mb-3">Academic Data — Marks Entry</h4>
+
+<div class="panel">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label">Subject</label>
+      <select name="subject_id" class="form-select" required onchange="this.form.submit()">
+        <option value="">-- choose a subject --</option>
+        {% for s in subjects %}
+        <option value="{{ s['id'] }}" {{ 'selected' if selected_subject_id == s['id'] }}>{{ s['subject_name'] }} ({{ s['subject_code'] }})</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Manage subjects under <a href="{{ url_for('syllabus.syllabus_list') }}">Syllabus Management</a>.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Exam Name</label>
+      <input type="text" name="exam_name" class="form-control" list="recentExams"
+             placeholder="e.g. Mid Term 1, Surprise Quiz" value="{{ selected_exam_name or '' }}" required>
+      <datalist id="recentExams">
+        {% for e in recent_exams %}<option value="{{ e }}">{% endfor %}
+      </datalist>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Total Mark</label>
+      <input type="number" step="0.01" min="0.01" name="total_marks" class="form-control"
+             placeholder="e.g. 100" value="{{ selected_total_marks or '' }}" required>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Section (optional)</label>
+      <select name="section" class="form-select">
+        <option value="">All sections</option>
+        {% for sec in sections %}
+        <option value="{{ sec }}" {{ 'selected' if selected_section == sec }}>{{ sec }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100">Load Sheet</button>
+    </div>
+  </form>
+</div>
+
+{% if sheet_students %}
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">{{ selected_exam_name }} — out of {{ selected_total_marks }}</h6>
+    <div>
+      <a href="{{ url_for('academic.export_csv', subject_id=selected_subject_id, exam_name=selected_exam_name) }}"
+         class="btn btn-sm btn-outline-primary">Export CSV</a>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">Import CSV</button>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('academic.save_sheet') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="subject_id" value="{{ selected_subject_id }}">
+    <input type="hidden" name="exam_name" value="{{ selected_exam_name }}">
+    <input type="hidden" name="total_marks" value="{{ selected_total_marks }}">
+    <input type="hidden" name="section" value="{{ selected_section }}">
+
+    <table class="table table-sm marks-grid">
+      <thead><tr><th>Student ID</th><th>Name</th><th>Obtained Mark</th><th>Percentage</th></tr></thead>
+      <tbody>
+        {% for s in sheet_students %}
+        <tr>
+          <td>{{ s.student_id }}</td>
+          <td>{{ s.name }}</td>
+          <td>
+            <input type="hidden" name="student_id" value="{{ s.student_id }}">
+            <input type="number" step="0.01" min="0" max="{{ selected_total_marks }}"
+                   name="obtained_marks" class="form-control form-control-sm marks-input"
+                   value="{{ s.obtained_marks }}" oninput="updatePct(this)">
+          </td>
+          <td class="pct-cell text-muted">{{ s.percentage if s.percentage is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary">Save Sheet</button>
+    <span class="text-muted ms-2" style="font-size:0.85rem;">Blank cells are skipped (won't overwrite existing marks with zero).</span>
+  </form>
+</div>
+
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('academic.import_csv') }}" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header"><h5 class="modal-title">Import Marks from CSV</h5></div>
+        <div class="modal-body">
+          <input type="hidden" name="subject_id" value="{{ selected_subject_id }}">
+          <input type="hidden" name="exam_name" value="{{ selected_exam_name }}">
+          <input type="hidden" name="total_marks" value="{{ selected_total_marks }}">
+          <p class="text-muted" style="font-size:0.85rem;">CSV must have columns: <code>student_id, obtained_marks</code></p>
+          <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% elif selected_subject_id %}
+<div class="alert alert-info">Enter an Exam Name and Total Mark, then click "Load Sheet" to start entering marks.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updatePct(input) {
+  const row = input.closest('tr');
+  const total = parseFloat(document.querySelector('input[name="total_marks"]').value);
+  const pctCell = row.querySelector('.pct-cell');
+  const val = parseFloat(input.value);
+  if (!isNaN(val) && total > 0) {
+    pctCell.textContent = ((val / total) * 100).toFixed(1) + '%';
+  } else {
+    pctCell.textContent = '—';
+  }
+}
+</script>
+{% endblock %}

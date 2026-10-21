@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Face Registration{% endblock %}
+{% block content %}
+<h4 class="mb-3">Register Student Face</h4>
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="panel">
+      <label class="form-label">Select Student</label>
+      <select id="studentSelect" class="form-select mb-3">
+        <option value="">-- choose a student --</option>
+        {% for s in students %}<option value="{{ s['student_id'] }}">{{ s['name'] }} ({{ s['student_id'] }}) {% if s['face_registered'] %}— registered{% endif %}</option>{% endfor %}
+      </select>
+      <button id="startBtn" class="btn btn-primary w-100" disabled>Start Capture</button>
+    </div>
+    <div class="panel">
+      <h6>Train Recognizer</h6>
+      <form method="POST" action="{{ url_for('face.train_recognizer_route') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-primary w-100">Train / Retrain Recognizer</button></form>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="panel">
+      <div id="cameraArea" class="text-center text-muted py-5" style="border:1px dashed #ccc; border-radius:8px;">Select a student and click "Start Capture".</div>
+      <div id="progressArea" class="mt-3 d-none">
+        <div class="progress" style="height:22px;"><div id="progressBar" class="progress-bar" style="width:0%">0%</div></div>
+        <p id="progressText" class="text-muted mt-2 mb-0"></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const studentSelect = document.getElementById('studentSelect');
+const startBtn = document.getElementById('startBtn');
+const cameraArea = document.getElementById('cameraArea');
+const progressArea = document.getElementById('progressArea');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+let pollTimer = null;
+
+studentSelect.addEventListener('change', () => { startBtn.disabled = !studentSelect.value; });
+
+function finish() {
+  clearInterval(pollTimer);
+  startBtn.disabled = !studentSelect.value; studentSelect.disabled = false;
+  startBtn.textContent = 'Start Capture';
+}
+
+startBtn.addEventListener('click', async () => {
+  const studentId = studentSelect.value;
+  if (!studentId) return;
+  startBtn.disabled = true; studentSelect.disabled = true; startBtn.textContent = 'Starting...';
+  const res = await fetch('/face/register/start', {
+    method: 'POST',
+    headers: {'X-CSRF-Token': CSRF, 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({student_id: studentId})
+  });
+  if (!res.ok) { progressText.textContent = 'Could not start capture.'; finish(); return; }
+  // The camera now runs in a background worker; this just views its latest frame.
+  cameraArea.innerHTML = `<img src="/face/stream?t=${Date.now()}" class="camera-frame" alt="camera feed">`;
+  progressArea.classList.remove('d-none');
+  startBtn.textContent = 'Capturing...';
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    const status = await (await fetch('/face/registration_status')).json();
+    const pct = status.target ? Math.round((status.count / status.target) * 100) : 0;
+    progressBar.style.width = pct + '%'; progressBar.textContent = pct + '%';
+    let text = `${status.count} / ${status.target} samples captured`;
+    if (status.last_det_score !== null && status.last_det_score !== undefined) text += ` — confidence: ${status.last_det_score.toFixed(2)}`;
+    progressText.textContent = text;
+    if (status.error) { progressText.textContent = 'Error: ' + status.error; finish(); }
+    if (status.done) { progressText.textContent += ' — Complete! Face gallery updated automatically.'; finish(); }
+  }, 500);
+});
+</script>
+{% endblock %}

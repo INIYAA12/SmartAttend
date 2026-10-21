@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h4 class="mb-3">Dashboard</h4>
+<div class="row g-3 mb-2">
+  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value">{{ total_students }}</div></div></div>
+  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Present Today</div><div class="stat-value text-success">{{ present_today }} <small class="text-muted" style="font-size:0.75rem;">({{ today_attendance_pct }}%)</small></div></div></div>
+  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Absent Today</div><div class="stat-value text-danger">{% if session_held_today %}{{ absent_today }}{% else %}0 <small class="text-muted" style="font-size:0.75rem;">(No sessions)</small>{% endif %}</div></div></div>
+  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Overall Attendance %</div><div class="stat-value">{{ overall_attendance_pct }}%</div></div></div>
+</div>
+<div class="row g-3 mb-2">
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Low Risk</div><div class="stat-value text-success">{{ risk_counts['Low'] }}</div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Medium Risk</div><div class="stat-value text-warning">{{ risk_counts['Medium'] }}</div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">High Risk</div><div class="stat-value text-danger">{{ risk_counts['High'] }}</div></div></div>
+</div>
+
+<div class="panel mt-2 mb-3">
+  <h6 class="mb-2">Section-wise Academic & Attendance Analytics</h6>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Section</th>
+          <th>Enrolled Students</th>
+          <th>Average Attendance</th>
+          <th>Average Marks</th>
+          <th>High-Risk Students</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sec in section_stats %}
+        <tr>
+          <td><strong>Section {{ sec['section'] }}</strong></td>
+          <td>{{ sec['student_count'] }}</td>
+          <td>
+            <span class="{{ 'text-success' if sec['avg_attendance'] >= 75 else ('text-warning' if sec['avg_attendance'] >= 60 else 'text-danger') }}">
+              {{ sec['avg_attendance'] }}%
+            </span>
+          </td>
+          <td>{{ sec['avg_marks'] }}%</td>
+          <td>
+            {% if sec['high_risk_count'] > 0 %}
+            <span class="badge badge-risk-high">{{ sec['high_risk_count'] }} High Risk</span>
+            {% else %}
+            <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted text-center py-2">No section data recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-md-8">
+    <div class="panel mb-0">
+      <h6 class="mb-3">Students needing attention</h6>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Student</th><th>Section</th><th>Predicted</th><th>Risk</th></tr></thead>
+        <tbody>
+          {% for r in at_risk %}
+          <tr><td><a href="{{ url_for('students.student_detail', student_id=r['student_id']) }}">{{ r['name'] }}</a></td><td>{{ r['section'] }}</td><td>{{ r['predicted_score'] }}</td>
+              <td><span class="badge {{ 'badge-risk-high' if r['risk_level']=='High' else 'badge-risk-medium' }}">{{ r['risk_level'] }}</span></td></tr>
+          {% else %}<tr><td colspan="4" class="text-muted text-center py-3">No predictions yet — run "Predict for all students".</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="panel mb-0 h-100">
+      <h6>Live model</h6>
+      {% if model_info %}
+        <p class="mb-1"><strong>{{ model_info.selected_model.replace('_',' ').title() }}</strong></p>
+        <p class="mb-1 text-muted" style="font-size:0.85rem;">{{ model_info.version }}</p>
+        <p class="mb-0">MAE <strong>{{ model_info.mae }}</strong> · R² <strong>{{ model_info.r2_score }}</strong></p>
+      {% else %}<p class="text-muted mb-0">No model trained yet.</p>{% endif %}
+    </div>
+  </div>
+</div>
+<div class="panel mt-3"><h6 class="mb-3">Attendance — last 7 days</h6><canvas id="trendChart" height="90"></canvas></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const trendLabels = {{ trend | map(attribute='date') | list | tojson }};
+const trendData = {{ trend | map(attribute='count') | list | tojson }};
+new Chart(document.getElementById('trendChart'), {
+  type: 'line', data: { labels: trendLabels, datasets: [{ label: 'Students present', data: trendData, borderColor: '#2f5d8c', backgroundColor: 'rgba(47,93,140,0.15)', tension: 0.3, fill: true }] },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

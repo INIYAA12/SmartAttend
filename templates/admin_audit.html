@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Audit Log</h4>
+  <form method="GET" class="d-flex gap-2">
+    <input type="text" name="action" class="form-control form-control-sm" placeholder="filter, e.g. auth. or marks." value="{{ action }}">
+    <button class="btn btn-sm btn-primary">Filter</button>
+  </form>
+</div>
+<div class="panel">
+  <table class="table table-sm table-hover">
+    <thead><tr><th>When (UTC)</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for e in events %}
+      <tr><td>{{ e['created_at'] }}</td><td>{{ e['username'] or '—' }}</td><td><code>{{ e['action'] }}</code></td>
+          <td>{{ e['entity'] or '' }} {{ e['entity_id'] or '' }}</td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e['details'] or '' }}</td><td>{{ e['ip'] or '' }}</td></tr>
+      {% else %}<tr><td colspan="6" class="text-muted text-center py-4">No events recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Performance Prediction{% endblock %}
+{% block content %}
+<h4 class="mb-3">Performance Prediction</h4>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="panel">
+      <h6>All Students</h6>
+      <p class="text-muted" style="font-size:0.85rem;">Predict for every student with complete data (runs in the background; results feed the dashboard and reports).</p>
+      <form method="POST" action="{{ url_for('predictions.prediction_run_all') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-primary w-100" {{ 'disabled' if active_job }}>Predict for all students</button></form>
+      <div id="jobPanel" class="job-panel mt-3 {{ '' if active_job else 'd-none' }}">
+        <div class="progress"><div id="jobBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%">0%</div></div>
+        <p id="jobText" class="text-muted mt-2 mb-0" style="font-size:0.85rem;"></p>
+      </div>
+    </div>
+    <div class="panel">
+      <h6>Select Student</h6>
+      <form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="student_id" class="form-select mb-3" required>
+          <option value="">-- choose a student --</option>
+          {% for s in students %}<option value="{{ s['student_id'] }}" {{ 'selected' if selected_student == s['student_id'] }}>{{ s['name'] }} ({{ s['student_id'] }})</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary w-100">Predict Performance</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-8">
+    {% if result %}
+    <div class="panel">
+      <h6>Prediction Result — {{ selected_student }}</h6>
+      <div class="row text-center g-3 mt-1">
+        <div class="col-md-4"><div class="stat-card"><div class="stat-label">Predicted Score</div><div class="stat-value">{{ result.predicted_score }}</div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-label">Category</div><div class="stat-value" style="font-size:1.3rem;">{{ result.performance_category }}</div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-label">Risk</div><div class="stat-value"><span class="badge {{ 'badge-risk-low' if result.risk_level=='Low' else ('badge-risk-medium' if result.risk_level=='Medium' else 'badge-risk-high') }}">{{ result.risk_level }}</span></div></div></div>
+      </div>
+      <h6 class="mt-4">Features used</h6>
+      <table class="table table-sm">
+        <tr><th>Attendance %</th><td>{{ result.features_used.attendance_percentage }}</td></tr>
+        <tr><th>Marks Average %</th><td>{{ result.features_used.marks_average_percentage }}</td></tr>
+        <tr><th>Previous GPA</th><td>{{ result.features_used.previous_gpa }}</td></tr>
+      </table>
+      <p class="text-muted mt-2 mb-0" style="font-size:0.85rem;">Model version: {{ result.model_version }}. A statistical estimate, not a guaranteed outcome.</p>
+    </div>
+    {% else %}
+    <div class="panel text-muted">Choose a student to see their predicted score, category, and risk level.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const activeJob = {{ (active_job or '')|tojson }};
+if (activeJob) {
+  const bar = document.getElementById('jobBar'), text = document.getElementById('jobText');
+  const timer = setInterval(async () => {
+    const job = await (await fetch('/jobs/' + activeJob)).json();
+    bar.style.width = job.progress + '%'; bar.textContent = job.progress + '%';
+    text.textContent = job.message || '';
+    if (job.status === 'succeeded' || job.status === 'failed') {
+      clearInterval(timer);
+      if (job.status === 'failed') { text.textContent = 'Failed: ' + job.error; return; }
+      const r = job.result || {};
+      text.textContent = `Done: ${r.predicted} predicted, ${(r.skipped || []).length} skipped (incomplete data).`;
+      bar.classList.remove('progress-bar-animated');
+    }
+  }, 700);
+}
+</script>
+{% endblock %}

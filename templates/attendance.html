@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Attendance Records{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Attendance Records</h4>
+  <a href="{{ url_for('attendance.export_csv', **filters) }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+</div>
+<form method="GET" class="panel">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ filters.get('date','') }}"></div>
+    <div class="col-md-3"><label class="form-label">Student</label>
+      <select name="student_id" class="form-select"><option value="">All</option>{% for s in students %}<option value="{{ s['student_id'] }}" {{ 'selected' if filters.get('student_id')==s['student_id'] }}>{{ s['name'] }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-md-3"><label class="form-label">Subject</label>
+      <select name="subject_id" class="form-select"><option value="">All</option>{% for s in subjects %}<option value="{{ s['id'] }}" {{ 'selected' if filters.get('subject_id')|string==s['id']|string }}>{{ s['subject_name'] }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-md-2"><label class="form-label">Section</label><input type="text" name="section" class="form-control" value="{{ filters.get('section','') }}"></div>
+    <div class="col-md-1"><button type="submit" class="btn btn-primary w-100">Go</button></div>
+  </div>
+</form>
+<div class="panel">
+  <table class="table table-sm table-hover">
+    <thead><tr><th>Student ID</th><th>Name</th><th>Subject</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr><td>{{ r['student_id'] }}</td><td>{{ r['student_name'] }}</td><td>{{ r['subject_name'] }}</td><td>{{ r['date'] }}</td><td>{{ r['time'] }}</td><td><span class="badge bg-success">{{ r['status'] }}</span></td></tr>
+      {% else %}<tr><td colspan="6" class="text-muted text-center py-4">No records match these filters.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

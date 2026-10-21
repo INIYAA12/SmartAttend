@@ -1,0 +1,27 @@
+:root { --sidebar-w: 240px; --primary: #2f5d8c; --primary-dark: #1f3f61; --bg: #f4f6f9; --card-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+body { background: var(--bg); font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar { width: var(--sidebar-w); background: linear-gradient(180deg, var(--primary-dark), var(--primary)); color: #fff; display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; overflow-y: auto; }
+.sidebar-brand { padding: 20px 18px; font-weight: 600; font-size: 1.05rem; border-bottom: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; gap: 8px; }
+.sidebar-nav { flex: 1; padding: 10px 0; }
+.sidebar-nav li a { display: block; color: rgba(255,255,255,0.85); text-decoration: none; padding: 10px 20px; font-size: 0.88rem; border-left: 3px solid transparent; }
+.sidebar-nav li a:hover { background: rgba(255,255,255,0.08); }
+.sidebar-nav li a.active { background: rgba(255,255,255,0.15); border-left: 3px solid #fff; font-weight: 600; }
+.sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.15); }
+.user-chip { font-size: 0.85rem; }
+.role-badge { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 1px 8px; font-size: 0.72rem; margin-left: 4px; text-transform: capitalize; }
+.content { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+.stat-card { background: #fff; border-radius: 10px; box-shadow: var(--card-shadow); padding: 18px 20px; height: 100%; }
+.stat-card .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); }
+.stat-card .stat-label { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.panel { background: #fff; border-radius: 10px; box-shadow: var(--card-shadow); padding: 20px; margin-bottom: 20px; }
+.badge-risk-low { background: #2e7d32; } .badge-risk-medium { background: #ef6c00; } .badge-risk-high { background: #c62828; }
+.camera-frame { width: 100%; max-width: 640px; border-radius: 10px; border: 1px solid #dee2e6; background: #000; }
+.login-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); }
+.login-card { background: #fff; border-radius: 12px; padding: 36px 32px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+.marks-grid input.marks-input { max-width: 90px; }
+.marks-grid td, .marks-grid th { vertical-align: middle; }
+
+.nav-section { color: rgba(255,255,255,0.5); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 20px 4px; }
+.demo-badge { background: #ffb300; color: #3e2c00; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; border-radius: 6px; padding: 3px 8px; text-align: center; margin-bottom: 8px; }
+.job-panel .progress { height: 18px; }

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ student['name'] }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">{{ student['name'] }} <small class="text-muted">({{ student['student_id'] }})</small></h4>
+  <a href="{{ url_for('students.list_students') }}" class="btn btn-sm btn-outline-secondary">Back</a>
+</div>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="panel">
+      <h6>Personal Information</h6>
+      <table class="table table-sm mb-0">
+        <tr><th>Section</th><td>{{ student['section'] }}</td></tr>
+        <tr><th>Previous GPA</th><td>{{ student['previous_gpa'] if student['previous_gpa'] is not none else '—' }}</td></tr>
+        <tr><th>Email</th><td>{{ student['email'] }}</td></tr>
+        <tr><th>Face Registered</th><td>{% if student['face_registered'] %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h6>Computed Prediction Features</h6>
+      {% if features %}
+        <table class="table table-sm mb-0">
+          <tr><th>Attendance %</th><td>{{ features.attendance_percentage }}</td></tr>
+          <tr><th>Marks Average %</th><td>{{ features.marks_average_percentage }}</td></tr>
+          <tr><th>Previous GPA</th><td>{{ features.previous_gpa }}</td></tr>
+        </table>
+      {% else %}
+        <p class="text-warning mb-0">Missing: {{ missing | join(', ') }}</p>
+      {% endif %}
+    </div>
+    <div class="panel">
+      <h6>Latest Prediction</h6>
+      {% if prediction %}
+        <p class="mb-1">Score: <strong>{{ prediction['predicted_score'] }}</strong></p>
+        <p class="mb-1">Category: <strong>{{ prediction['performance_category'] }}</strong></p>
+        <p class="mb-0">Risk: <span class="badge {{ 'badge-risk-low' if prediction['risk_level']=='Low' else ('badge-risk-medium' if prediction['risk_level']=='Medium' else 'badge-risk-high') }}">{{ prediction['risk_level'] }}</span></p>
+      {% else %}<p class="text-muted mb-0">No prediction yet.</p>{% endif %}
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="panel">
+      <h6>Marks Entered</h6>
+      <table class="table table-sm">
+        <thead><tr><th>Subject</th><th>Exam</th><th>Obtained/Total</th><th>%</th></tr></thead>
+        <tbody>
+          {% for m in marks_rows %}
+          <tr><td>{{ m['subject_name'] }}</td><td>{{ m['exam_name'] }}</td><td>{{ m['obtained_marks'] }}/{{ m['total_marks'] }}</td><td>{{ m['percentage'] }}%</td></tr>
+          {% else %}<tr><td colspan="4" class="text-muted text-center py-3">No marks entered yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h6>Recent Attendance ({{ total_sessions }} sessions total)</h6>
+      <table class="table table-sm">
+        <thead><tr><th>Date</th><th>Time</th><th>Subject</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for r in attendance_rows %}
+          <tr><td>{{ r['date'] }}</td><td>{{ r['time'] }}</td><td>{{ r['subject_name'] }}</td><td>{{ r['status'] }}</td></tr>
+          {% else %}<tr><td colspan="4" class="text-muted text-center">No attendance recorded yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

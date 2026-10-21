@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Add Student' if mode == 'add' else 'Edit Student' }}{% endblock %}
+{% block content %}
+<h4 class="mb-3">{{ 'Add Student' if mode == 'add' else 'Edit Student' }}</h4>
+<div class="panel" style="max-width: 640px;">
+  <form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3"><label class="form-label">Student ID *</label>
+      <input type="text" name="student_id" class="form-control" value="{{ student['student_id'] if student else '' }}" {{ 'readonly' if mode == 'edit' }} required></div>
+    <div class="mb-3"><label class="form-label">Roll Number</label><input type="text" name="roll_number" class="form-control" value="{{ student['roll_number'] if student else '' }}"></div>
+    <div class="mb-3"><label class="form-label">Name *</label><input type="text" name="name" class="form-control" value="{{ student['name'] if student else '' }}" required></div>
+    <div class="row">
+      <div class="col-md-6 mb-3"><label class="form-label">Department</label><input type="text" name="department" class="form-control" value="{{ student['department'] if student else '' }}"></div>
+      <div class="col-md-6 mb-3"><label class="form-label">Year</label><input type="text" name="year" class="form-control" value="{{ student['year'] if student else '' }}"></div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3"><label class="form-label">Section</label><input type="text" name="section" class="form-control" value="{{ student['section'] if student else '' }}"></div>
+      <div class="col-md-6 mb-3"><label class="form-label">Semester</label><input type="text" name="semester" class="form-control" value="{{ student['semester'] if student else '' }}"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="{{ student['email'] if student else '' }}"></div>
+    <div class="mb-3"><label class="form-label">Previous GPA (0-10)</label>
+      <input type="number" step="0.01" min="0" max="10" name="previous_gpa" class="form-control" value="{{ student['previous_gpa'] if student and student['previous_gpa'] is not none else '' }}">
+      <div class="form-text">Used as one of the three prediction features. Not tied to any subject.</div>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+instance/
+logs/
+database/*.db
+database/*.db-wal
+database/*.db-shm
+data/academic_dataset.csv
+data/faces/*
+!data/faces/.gitkeep
+models/registry/*
+!models/registry/.gitkeep
+models/face_gallery.npz
+.pytest_cache/
