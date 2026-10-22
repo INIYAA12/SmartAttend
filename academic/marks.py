@@ -122,6 +122,20 @@ def compute_attendance_percentage(student_id):
         total = total_row["c"] if total_row else 0
 
     if total == 0:
+        total_sub_row = query_one(
+            """
+            SELECT COUNT(DISTINCT date || '-' || subject_id) AS c
+            FROM attendance
+            WHERE subject_id IN (SELECT DISTINCT subject_id FROM attendance WHERE student_id = ?)
+            """,
+            (student_id,),
+        )
+        total = total_sub_row["c"] if total_sub_row else 0
+        if total == 0 and present == 0:
+            all_sess = query_one("SELECT COUNT(DISTINCT date || '-' || subject_id) AS c FROM attendance")
+            total = all_sess["c"] if all_sess else 0
+
+    if total == 0:
         if present > 0:
             total = present
         else:
@@ -137,26 +151,23 @@ def compute_attendance_percentage(student_id):
 
 def compute_marks_average_percentage(student_id):
     """
-    Weighted average percentage across EVERY mark this student has:
-    SUM(obtained_marks) / SUM(total_marks) * 100.
-    Protects against division by zero, nulls, and clamps between 0.0 and 100.0.
+    Average percentage across EVERY mark this student has:
+    AVG(percentage) across all recorded exams for the student.
+    Protects against nulls and clamps between 0.0 and 100.0.
     """
     row = query_one(
         """
-        SELECT SUM(obtained_marks) AS sum_obtained,
-               SUM(total_marks) AS sum_total,
+        SELECT AVG(percentage) AS avg_pct,
                COUNT(*) AS c
         FROM marks
-        WHERE student_id = ? AND total_marks > 0 AND obtained_marks IS NOT NULL
+        WHERE student_id = ? AND percentage IS NOT NULL
         """,
         (student_id,),
     )
-    if not row or row["c"] == 0 or row["sum_total"] is None or row["sum_total"] <= 0:
+    if not row or row["c"] == 0 or row["avg_pct"] is None:
         return None
 
-    obtained = row["sum_obtained"] or 0.0
-    total = row["sum_total"]
-    pct = (obtained / total) * 100.0
+    pct = row["avg_pct"]
     pct = max(0.0, min(100.0, pct))
     return round(pct, 1)
 

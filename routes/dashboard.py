@@ -1,9 +1,67 @@
 import datetime
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, jsonify
 from database.db import query_all, query_one
 from routes.auth import login_required
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
+
+def get_attendance_trend_data(start_str=None, end_str=None):
+    """
+    Computes daily distinct student attendance counts for any specified date range.
+    Uses actual attendance records from the database.
+    Returns: (trend_list, has_data, error_message, resolved_start_str, resolved_end_str)
+    """
+    today = datetime.date.today()
+
+    if not end_str or not end_str.strip():
+        end_date = today
+        resolved_end = end_date.isoformat()
+    else:
+        try:
+            end_date = datetime.date.fromisoformat(end_str.strip())
+            resolved_end = end_date.isoformat()
+        except ValueError:
+            return [], False, "Invalid End Date format (expected YYYY-MM-DD).", start_str, end_str
+
+    if not start_str or not start_str.strip():
+        start_date = end_date - datetime.timedelta(days=6)
+        resolved_start = start_date.isoformat()
+    else:
+        try:
+            start_date = datetime.date.fromisoformat(start_str.strip())
+            resolved_start = start_date.isoformat()
+        except ValueError:
+            return [], False, "Invalid Start Date format (expected YYYY-MM-DD).", start_str, end_str
+
+    if start_date > end_date:
+        return [], False, "Start Date cannot be after End Date.", resolved_start, resolved_end
+
+    # Query attendance grouped by date for the selected date range
+    rows = query_all(
+        """
+        SELECT date, COUNT(DISTINCT student_id) AS c
+        FROM attendance
+        WHERE date >= ? AND date <= ?
+        GROUP BY date
+        ORDER BY date ASC
+        """,
+        (resolved_start, resolved_end),
+    )
+    date_map = {r["date"]: r["c"] for r in rows}
+
+    trend = []
+    has_data = False
+    cur = start_date
+    while cur <= end_date:
+        d_str = cur.isoformat()
+        c = date_map.get(d_str, 0)
+        if c > 0:
+            has_data = True
+        trend.append({"date": d_str, "count": c})
+        cur += datetime.timedelta(days=1)
+
+    return trend, has_data, None, resolved_start, resolved_end
 
 
 @dashboard_bp.route("/")
@@ -53,12 +111,10 @@ def index():
     for row in risk_rows:
         risk_counts[row["risk_level"]] = row["c"]
 
-    # 7-day attendance trend
-    trend = []
-    for i in range(6, -1, -1):
-        day = (datetime.date.today() - datetime.timedelta(days=i)).isoformat()
-        count = query_one("SELECT COUNT(DISTINCT student_id) AS c FROM attendance WHERE date = ?", (day,))["c"]
-        trend.append({"date": day, "count": count})
+    # Date-range attendance trend (defaults to recent 7 days, supports any custom range)
+    req_start = request.args.get("start_date")
+    req_end = request.args.get("end_date")
+    trend, has_trend_data, trend_error, start_date, end_date = get_attendance_trend_data(req_start, req_end)
 
     # Section-wise performance comparison (Phase 9)
     sections_raw = query_all("SELECT DISTINCT section FROM students WHERE section IS NOT NULL AND section != '' ORDER BY section")
@@ -100,10 +156,45 @@ def index():
     from ml import registry
     model_info = registry.get_current_version_info()
 
+    db_bounds = query_one("SELECT MIN(date) AS min_d, MAX(date) AS max_d FROM attendance")
+    min_available_date = db_bounds["min_d"] if db_bounds and db_bounds["min_d"] else (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+    max_available_date = db_bounds["max_d"] if db_bounds and db_bounds["max_d"] else today
+
     return render_template(
         "dashboard.html", at_risk=at_risk, model_info=model_info, total_students=total_students,
         present_today=present_today, absent_today=absent_today, session_held_today=session_held_today,
         today_attendance_pct=today_attendance_pct, overall_attendance_pct=overall_attendance_pct,
         risk_counts=risk_counts, trend=trend, section_stats=section_stats,
+        start_date=start_date, end_date=end_date, has_trend_data=has_trend_data, trend_error=trend_error,
+        min_available_date=min_available_date, max_available_date=max_available_date,
     )
+
+
+@dashboard_bp.route("/dashboard/attendance-trend")
+@login_required
+def attendance_trend_api():
+    """Dynamic JSON endpoint for asynchronous date-range attendance chart updates."""
+    req_start = request.args.get("start_date")
+    req_end = request.args.get("end_date")
+    trend, has_data, err_msg, resolved_start, resolved_end = get_attendance_trend_data(req_start, req_end)
+
+    if err_msg:
+        return jsonify({"ok": False, "error": err_msg}), 400
+
+    total_attendance = sum(t["count"] for t in trend)
+    avg_daily = round(total_attendance / len(trend), 1) if trend else 0.0
+    peak_count = max((t["count"] for t in trend), default=0)
+
+    return jsonify({
+        "ok": True,
+        "labels": [t["date"] for t in trend],
+        "counts": [t["count"] for t in trend],
+        "has_data": has_data,
+        "start_date": resolved_start,
+        "end_date": resolved_end,
+        "total_days": len(trend),
+        "total_attendance": total_attendance,
+        "avg_daily": avg_daily,
+        "peak_count": peak_count,
+    })
 

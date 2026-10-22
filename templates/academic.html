@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Academic Data{% endblock %}
 {% block content %}
-<h4 class="mb-3">Academic Data — Marks Entry</h4>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h4 class="mb-0">Academic Data — Marks Entry</h4>
+    <div class="text-muted small">Record exam scores, import/export marksheets, and update academic evaluation</div>
+  </div>
+  <a href="{{ url_for('syllabus.syllabus_list') }}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2">
+    <span>📖</span>
+    <span>Syllabus Management</span>
+  </a>
+</div>
 
 <div class="panel">
   <form method="GET" class="row g-2 align-items-end">
@@ -13,7 +22,13 @@
         <option value="{{ s['id'] }}" {{ 'selected' if selected_subject_id == s['id'] }}>{{ s['subject_name'] }} ({{ s['subject_code'] }})</option>
         {% endfor %}
       </select>
-      <div class="form-text">Manage subjects under <a href="{{ url_for('syllabus.syllabus_list') }}">Syllabus Management</a>.</div>
+      <div class="form-text mt-2 d-flex align-items-center justify-content-between">
+        <span>Need more subjects?</span>
+        <a href="{{ url_for('syllabus.syllabus_list') }}" class="btn btn-sm btn-outline-secondary py-0 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.76rem;">
+          <span>📖</span>
+          <span>Syllabus Management</span>
+        </a>
+      </div>
     </div>
     <div class="col-md-3">
       <label class="form-label">Exam Name</label>

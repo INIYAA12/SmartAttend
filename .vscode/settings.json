@@ -1,0 +1,14 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "files.associations": {
+    "*.html": "jinja-html"
+  },
+  "html.validate.scripts": false,
+  "html.validate.styles": false
+}

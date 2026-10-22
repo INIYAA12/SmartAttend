@@ -1,8 +1,77 @@
 {% extends "base.html" %}
 {% block title %}Students{% endblock %}
 {% block content %}
+<style>
+.student-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #1f3f61;
+  font-weight: 600;
+  padding: 5px 12px;
+  margin: -3px 0;
+  border-radius: 6px;
+  background-color: #f8fafd;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease-in-out;
+}
+.student-action-link:hover {
+  background-color: #eef4fb;
+  border-color: #b9d5f3;
+  color: #2f5d8c;
+  box-shadow: 0 2px 6px rgba(47, 93, 140, 0.1);
+  text-decoration: none;
+}
+.student-avatar-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #dbe7f5;
+  color: #1f3f61;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.student-action-link:hover .student-avatar-badge {
+  background-color: #2f5d8c;
+  color: #ffffff;
+}
+.student-arrow-icon {
+  font-size: 0.85rem;
+  color: #8da4be;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.student-action-link:hover .student-arrow-icon {
+  color: #2f5d8c;
+  transform: translateX(2px);
+}
+.student-id-link {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #495057;
+  background-color: #f1f3f5;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-decoration: none;
+  border: 1px solid #e2e6ea;
+  transition: all 0.15s ease;
+}
+.student-id-link:hover {
+  background-color: #e2e8f0;
+  color: #1f3f61;
+  text-decoration: none;
+}
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="mb-0">Students</h4>
+  <div>
+    <h4 class="mb-0">Students</h4>
+    <div class="text-muted small">Registered student profiles, sections, and academic records</div>
+  </div>
   {% if session.get('role') == 'admin' %}
   <a href="{{ url_for('students.add_student') }}" class="btn btn-primary btn-sm">+ Add Student</a>
   {% endif %}
@@ -14,8 +83,18 @@
     <tbody>
       {% for s in students %}
       <tr>
-        <td><a href="{{ url_for('students.student_detail', student_id=s['student_id']) }}">{{ s['student_id'] }}</a></td>
-        <td>{{ s['roll_number'] }}</td><td>{{ s['name'] }}</td><td>{{ s['section'] }}</td>
+        <td>
+          <a href="{{ url_for('students.student_detail', student_id=s['student_id']) }}" class="student-id-link" title="View details">{{ s['student_id'] }}</a>
+        </td>
+        <td>{{ s['roll_number'] }}</td>
+        <td>
+          <a href="{{ url_for('students.student_detail', student_id=s['student_id']) }}" class="student-action-link" title="View profile for {{ s['name'] }}">
+            <span class="student-avatar-badge">{{ s['name'][0]|upper if s['name'] else 'S' }}</span>
+            <span>{{ s['name'] }}</span>
+            <span class="student-arrow-icon">&rarr;</span>
+          </a>
+        </td>
+        <td>{{ s['section'] }}</td>
         <td>{{ s['previous_gpa'] if s['previous_gpa'] is not none else '—' }}</td>
         <td>{% if s['face_registered'] %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
         <td class="text-end">

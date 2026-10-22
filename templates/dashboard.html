@@ -1,23 +1,510 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Executive Dashboard — Smart Attendance System{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">Dashboard</h4>
-<div class="row g-3 mb-2">
-  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value">{{ total_students }}</div></div></div>
-  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Present Today</div><div class="stat-value text-success">{{ present_today }} <small class="text-muted" style="font-size:0.75rem;">({{ today_attendance_pct }}%)</small></div></div></div>
-  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Absent Today</div><div class="stat-value text-danger">{% if session_held_today %}{{ absent_today }}{% else %}0 <small class="text-muted" style="font-size:0.75rem;">(No sessions)</small>{% endif %}</div></div></div>
-  <div class="col-md-3"><div class="stat-card"><div class="stat-label">Overall Attendance %</div><div class="stat-value">{{ overall_attendance_pct }}%</div></div></div>
-</div>
-<div class="row g-3 mb-2">
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Low Risk</div><div class="stat-value text-success">{{ risk_counts['Low'] }}</div></div></div>
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Medium Risk</div><div class="stat-value text-warning">{{ risk_counts['Medium'] }}</div></div></div>
-  <div class="col-md-4"><div class="stat-card"><div class="stat-label">High Risk</div><div class="stat-value text-danger">{{ risk_counts['High'] }}</div></div></div>
+<style>
+/* Dashboard Scoped Styling — Professional College Project Theme */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f3f61;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-subtitle {
+  color: #6c757d;
+  font-size: 0.88rem;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+.dashboard-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef4fb;
+  color: #2f5d8c;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #d0e1f3;
+}
+.dashboard-badge-pill .pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #2e7d32;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(46,125,50,0.25);
+}
+
+/* Enhanced KPI Cards */
+.kpi-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  border: 1px solid #e9edf2;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47,93,140,0.08);
+}
+.kpi-card .kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.kpi-card .kpi-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+.kpi-card .kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.kpi-icon-blue { background: #e8f0fe; color: #1a73e8; }
+.kpi-icon-green { background: #e6f4ea; color: #137333; }
+.kpi-icon-orange { background: #fef7e0; color: #b06000; }
+.kpi-icon-red { background: #fce8e6; color: #c5221f; }
+
+.kpi-card .kpi-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #1f3f61;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+.kpi-card .kpi-subtext {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Risk Cards */
+.risk-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e9edf2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.15s ease;
+}
+.risk-card:hover {
+  transform: translateY(-2px);
+}
+.risk-card-low { border-left: 5px solid #2e7d32; }
+.risk-card-med { border-left: 5px solid #ef6c00; }
+.risk-card-high { border-left: 5px solid #c62828; }
+.risk-card .risk-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.risk-card .risk-count {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+/* Modern Panel Component */
+.dashboard-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.35rem 1.5rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  border: 1px solid #e9edf2;
+  margin-bottom: 1.5rem;
+}
+.panel-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #f1f4f8;
+}
+.panel-title-custom {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f3f61;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Date Range Controls */
+.date-selector-bar {
+  background: #f8fafd;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 1rem;
+}
+.date-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.date-input-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+.date-input-group input[type="date"] {
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+.quick-preset-btn {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 15px;
+  font-weight: 600;
+  border: 1px solid #d0e1f3;
+  background: #fff;
+  color: #2f5d8c;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.quick-preset-btn:hover, .quick-preset-btn.active {
+  background: #2f5d8c;
+  color: #fff;
+  border-color: #2f5d8c;
+}
+
+/* Trend Statistics Chips */
+.trend-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.trend-chip {
+  background: #f8fafd;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  color: #495057;
+}
+.trend-chip strong {
+  color: #1f3f61;
+  font-weight: 700;
+}
+
+/* Empty State Box */
+.empty-trend-alert {
+  background: #fdfdfe;
+  border: 1px dashed #ced4da;
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6c757d;
+  margin: 10px 0;
+}
+.empty-trend-alert .empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+.empty-trend-alert .empty-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #495057;
+  margin-bottom: 6px;
+}
+
+/* Tables in Panels */
+.custom-dashboard-table {
+  width: 100%;
+  margin-bottom: 0;
+}
+.custom-dashboard-table thead th {
+  background: #f8fafd;
+  color: #6c757d;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e9edf2;
+}
+.custom-dashboard-table tbody td {
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f4f8;
+}
+.custom-dashboard-table tbody tr:hover {
+  background-color: #fcfdfe;
+}
+.custom-dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.model-info-metric {
+  background: #f8fafd;
+  border: 1px solid #e9edf2;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.model-info-metric .metric-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #6c757d;
+  font-weight: 700;
+}
+.model-info-metric .metric-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1f3f61;
+}
+</style>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+  <div>
+    <h3 class="dashboard-title">
+      <span>📊</span> Dashboard
+    </h3>
+    <p class="dashboard-subtitle">
+      Smart Attendance Intelligence & Academic Performance Telemetry
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <div class="dashboard-badge-pill">
+      <span class="pulse-dot"></span>
+      <span>System Live</span>
+    </div>
+    <span class="text-muted small" id="currentDateHeader">{{ now_date if now_date else '' }}</span>
+  </div>
 </div>
 
-<div class="panel mt-2 mb-3">
-  <h6 class="mb-2">Section-wise Academic & Attendance Analytics</h6>
+<!-- Row 1: KPI Stat Cards -->
+<div class="row g-3 mb-3">
+  <!-- Total Students -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label">Total Students</span>
+        <div class="kpi-icon kpi-icon-blue">👥</div>
+      </div>
+      <div>
+        <div class="kpi-value">{{ total_students }}</div>
+        <div class="kpi-subtext">Registered in Institution</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Present Today -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label">Present Today</span>
+        <div class="kpi-icon kpi-icon-green">✅</div>
+      </div>
+      <div>
+        <div class="kpi-value text-success">
+          {{ present_today }}
+          <small class="text-muted" style="font-size: 0.85rem; font-weight: 500;">({{ today_attendance_pct }}%)</small>
+        </div>
+        <div class="kpi-subtext">Active student check-ins</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Absent Today -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label">Absent Today</span>
+        <div class="kpi-icon kpi-icon-orange">⏱️</div>
+      </div>
+      <div>
+        <div class="kpi-value text-danger">
+          {% if session_held_today %}
+            {{ absent_today }}
+          {% else %}
+            0 <small class="text-muted" style="font-size: 0.8rem; font-weight: 500;">(No sessions)</small>
+          {% endif %}
+        </div>
+        <div class="kpi-subtext">Expected cohort absences</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overall Attendance % -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-label">Overall Attendance</span>
+        <div class="kpi-icon kpi-icon-blue">📈</div>
+      </div>
+      <div>
+        <div class="kpi-value">{{ overall_attendance_pct }}%</div>
+        <div class="progress mt-1" style="height: 6px;">
+          <div class="progress-bar {% if overall_attendance_pct >= 75 %}bg-success{% elif overall_attendance_pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+               role="progressbar" style="width: {{ overall_attendance_pct }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Risk Profile Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="risk-card risk-card-low">
+      <div>
+        <div class="risk-title text-success">Low Risk Cohort</div>
+        <div class="small text-muted">Consistent attendance & strong scores</div>
+      </div>
+      <div class="risk-count text-success">{{ risk_counts['Low'] }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="risk-card risk-card-med">
+      <div>
+        <div class="risk-title text-warning">Medium Risk Cohort</div>
+        <div class="small text-muted">Borderline attendance / academic warning</div>
+      </div>
+      <div class="risk-count text-warning">{{ risk_counts['Medium'] }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="risk-card risk-card-high">
+      <div>
+        <div class="risk-title text-danger">High Risk Cohort</div>
+        <div class="small text-muted">Requires urgent advisor intervention</div>
+      </div>
+      <div class="risk-count text-danger">{{ risk_counts['High'] }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Analytics Graph with Dynamic Date-Range Selector -->
+<div class="dashboard-panel">
+  <div class="panel-header-custom">
+    <div>
+      <h5 class="panel-title-custom">
+        <span>📅</span> Attendance Analytics & Trends
+      </h5>
+      <div class="small text-muted">
+        Inspect institutional student attendance across any customizable date range
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Range Filter Bar -->
+  <div class="date-selector-bar">
+    <form id="dateRangeForm" class="row g-2 align-items-center" onsubmit="return false;">
+      <div class="col-auto">
+        <div class="date-input-group">
+          <label for="startDate">Start Date:</label>
+          <input type="date" id="startDate" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}">
+        </div>
+      </div>
+      <div class="col-auto">
+        <div class="date-input-group">
+          <label for="endDate">End Date:</label>
+          <input type="date" id="endDate" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}">
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="button" id="applyDateBtn" class="btn btn-sm btn-primary px-3 fw-semibold">
+          <span id="btnSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span>
+          Apply / View
+        </button>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div class="col-auto ms-auto d-flex flex-wrap align-items-center gap-1">
+        <span class="small text-muted me-1">Presets:</span>
+        <button type="button" class="quick-preset-btn" onclick="applyPreset(7)">Last 7 Days</button>
+        <button type="button" class="quick-preset-btn" onclick="applyPreset(14)">Last 14 Days</button>
+        <button type="button" class="quick-preset-btn" onclick="applyPreset(30)">Last 30 Days</button>
+        <button type="button" class="quick-preset-btn" onclick="applyAllTime()">All Available</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Client Validation / Error Alert -->
+  <div id="dateValidationError" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert">
+    <strong>Validation Error:</strong> <span id="dateValidationMsg">Start Date cannot be after End Date.</span>
+  </div>
+
+  <!-- Dynamic Summary Chips for Selected Date Range -->
+  <div id="trendSummaryChips" class="trend-summary-chips">
+    <div class="trend-chip">Date Range: <strong id="chipRange">{{ start_date or '' }} to {{ end_date or '' }}</strong></div>
+    <div class="trend-chip">Total Days: <strong id="chipDays">{{ trend | length if trend else 0 }}</strong></div>
+    <div class="trend-chip">Total Attendance Marked: <strong id="chipTotal">{{ (trend | sum(attribute='count')) if trend else 0 }}</strong></div>
+    <div class="trend-chip">Peak Single Day: <strong id="chipPeak">0</strong></div>
+  </div>
+
+  <!-- Graph Canvas Container -->
+  <div id="chartWrapper" style="position: relative; height: 300px; width: 100%;">
+    <canvas id="trendChart"></canvas>
+  </div>
+
+  <!-- Empty State Alert (shown when has_data is False) -->
+  <div id="emptyStateNotice" class="empty-trend-alert {% if has_trend_data %}d-none{% endif %}">
+    <div class="empty-icon">📭</div>
+    <div class="empty-title fw-bold">No attendance data available for this date range</div>
+    <p class="small text-muted mb-0">
+      No attendance data available between the selected dates. Please adjust your calendar range or try one of the presets above.
+    </p>
+  </div>
+</div>
+
+<!-- Section-wise Performance Table -->
+<div class="dashboard-panel">
+  <div class="panel-header-custom">
+    <div>
+      <h5 class="panel-title-custom">
+        <span>🏛️</span> Section-wise Academic & Attendance Analytics
+      </h5>
+      <div class="small text-muted">Cohort comparison across academic sections</div>
+    </div>
+  </div>
   <div class="table-responsive">
-    <table class="table table-sm table-hover mb-0">
+    <table class="table custom-dashboard-table">
       <thead>
         <tr>
           <th>Section</th>
@@ -30,65 +517,415 @@
       <tbody>
         {% for sec in section_stats %}
         <tr>
-          <td><strong>Section {{ sec['section'] }}</strong></td>
-          <td>{{ sec['student_count'] }}</td>
+          <td><span class="fw-bold text-dark">Section {{ sec['section'] }}</span></td>
+          <td><span class="badge bg-light text-dark border">{{ sec['student_count'] }} Students</span></td>
           <td>
-            <span class="{{ 'text-success' if sec['avg_attendance'] >= 75 else ('text-warning' if sec['avg_attendance'] >= 60 else 'text-danger') }}">
-              {{ sec['avg_attendance'] }}%
-            </span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="fw-semibold {{ 'text-success' if sec['avg_attendance'] >= 75 else ('text-warning' if sec['avg_attendance'] >= 60 else 'text-danger') }}">
+                {{ sec['avg_attendance'] }}%
+              </span>
+              <div class="progress flex-grow-1" style="height: 5px; max-width: 80px;">
+                <div class="progress-bar {{ 'bg-success' if sec['avg_attendance'] >= 75 else ('bg-warning' if sec['avg_attendance'] >= 60 else 'bg-danger') }}"
+                     style="width: {{ sec['avg_attendance'] }}%"></div>
+              </div>
+            </div>
           </td>
-          <td>{{ sec['avg_marks'] }}%</td>
+          <td>
+            <span class="fw-semibold text-secondary">{{ sec['avg_marks'] }}%</span>
+          </td>
           <td>
             {% if sec['high_risk_count'] > 0 %}
             <span class="badge badge-risk-high">{{ sec['high_risk_count'] }} High Risk</span>
             {% else %}
-            <span class="text-muted">0</span>
+            <span class="text-muted small">0 High Risk</span>
             {% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="text-muted text-center py-2">No section data recorded yet.</td></tr>
+        <tr>
+          <td colspan="5" class="text-muted text-center py-4">No section data recorded yet.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="row g-3 mt-1">
-  <div class="col-md-8">
-    <div class="panel mb-0">
-      <h6 class="mb-3">Students needing attention</h6>
-      <table class="table table-sm mb-0">
-        <thead><tr><th>Student</th><th>Section</th><th>Predicted</th><th>Risk</th></tr></thead>
-        <tbody>
-          {% for r in at_risk %}
-          <tr><td><a href="{{ url_for('students.student_detail', student_id=r['student_id']) }}">{{ r['name'] }}</a></td><td>{{ r['section'] }}</td><td>{{ r['predicted_score'] }}</td>
-              <td><span class="badge {{ 'badge-risk-high' if r['risk_level']=='High' else 'badge-risk-medium' }}">{{ r['risk_level'] }}</span></td></tr>
-          {% else %}<tr><td colspan="4" class="text-muted text-center py-3">No predictions yet — run "Predict for all students".</td></tr>{% endfor %}
-        </tbody>
-      </table>
+<!-- Row: Students Needing Attention + Live Model Telemetry -->
+<div class="row g-3">
+  <!-- Students Needing Attention -->
+  <div class="col-lg-8">
+    <div class="dashboard-panel h-100 mb-0">
+      <div class="panel-header-custom">
+        <div>
+          <h5 class="panel-title-custom">
+            <span>⚠️</span> Students needing attention
+          </h5>
+          <div class="small text-muted">Students prioritized by predicted score and risk classification</div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table custom-dashboard-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Section</th>
+              <th>Predicted Score</th>
+              <th>Risk Level</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in at_risk %}
+            <tr>
+              <td>
+                <a href="{{ url_for('students.student_detail', student_id=r['student_id']) }}" class="fw-bold text-decoration-none">
+                  {{ r['name'] }}
+                </a>
+                <span class="text-muted small ms-1">({{ r['student_id'] }})</span>
+              </td>
+              <td><span class="badge bg-light text-secondary border">Sec {{ r['section'] }}</span></td>
+              <td><strong>{{ r['predicted_score'] }}</strong> <span class="text-muted small">/ 100</span></td>
+              <td>
+                <span class="badge {{ 'badge-risk-high' if r['risk_level']=='High' else 'badge-risk-medium' }}">
+                  {{ r['risk_level'] }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-muted text-center py-4">
+                No predictions yet — run "Predict for all students".
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="panel mb-0 h-100">
-      <h6>Live model</h6>
-      {% if model_info %}
-        <p class="mb-1"><strong>{{ model_info.selected_model.replace('_',' ').title() }}</strong></p>
-        <p class="mb-1 text-muted" style="font-size:0.85rem;">{{ model_info.version }}</p>
-        <p class="mb-0">MAE <strong>{{ model_info.mae }}</strong> · R² <strong>{{ model_info.r2_score }}</strong></p>
-      {% else %}<p class="text-muted mb-0">No model trained yet.</p>{% endif %}
+
+  <!-- Live Model Telemetry -->
+  <div class="col-lg-4">
+    <div class="dashboard-panel h-100 mb-0 d-flex flex-column justify-content-between">
+      <div>
+        <div class="panel-header-custom">
+          <div>
+            <h5 class="panel-title-custom">
+              <span>🤖</span> Live model
+            </h5>
+            <div class="small text-muted">Active predictive regression pipeline</div>
+          </div>
+        </div>
+
+        {% if model_info %}
+        <div class="mb-3">
+          <div class="fw-bold fs-6 text-primary">{{ model_info.selected_model.replace('_',' ').title() }}</div>
+          <div class="text-muted small">Version: <code>{{ model_info.version }}</code></div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="model-info-metric">
+              <div class="metric-label">MAE Metric</div>
+              <div class="metric-val text-primary">{{ model_info.mae }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="model-info-metric">
+              <div class="metric-label">R² Score</div>
+              <div class="metric-val text-success">{{ model_info.r2_score }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="small text-muted bg-light p-2 rounded border">
+          Features: Attendance %, Marks Average %, and GPA are synthesized for regression inferences.
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-4">
+          <p class="mb-0">No model trained yet.</p>
+          <a href="{{ url_for('predictions.ml_training') }}" class="btn btn-sm btn-outline-primary mt-2">Train ML Model</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="mt-3 pt-2 border-top text-end">
+        <a href="{{ url_for('predictions.ml_training') }}" class="btn btn-sm btn-outline-secondary">Model Registry &rarr;</a>
+      </div>
     </div>
   </div>
 </div>
-<div class="panel mt-3"><h6 class="mb-3">Attendance — last 7 days</h6><canvas id="trendChart" height="90"></canvas></div>
 {% endblock %}
+
 {% block scripts %}
 <script>
-const trendLabels = {{ trend | map(attribute='date') | list | tojson }};
-const trendData = {{ trend | map(attribute='count') | list | tojson }};
-new Chart(document.getElementById('trendChart'), {
-  type: 'line', data: { labels: trendLabels, datasets: [{ label: 'Students present', data: trendData, borderColor: '#2f5d8c', backgroundColor: 'rgba(47,93,140,0.15)', tension: 0.3, fill: true }] },
-  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-});
+// Initial server-rendered trend data
+const initialLabels = {{ (trend | map(attribute='date') | list | tojson) if trend else '[]' }};
+const initialData = {{ (trend | map(attribute='count') | list | tojson) if trend else '[]' }};
+const initialHasData = {{ 'true' if has_trend_data else 'false' }};
+const minAvailableDate = {{ (min_available_date or '') | tojson }};
+const maxAvailableDate = {{ (max_available_date or '') | tojson }};
+
+let trendChartInstance = null;
+
+function renderOrUpdateChart(labels, data) {
+  const chartWrapper = document.getElementById('chartWrapper');
+  const emptyNotice = document.getElementById('emptyStateNotice');
+  const errorAlert = document.getElementById('dateValidationError');
+
+  if (errorAlert) errorAlert.classList.add('d-none');
+  if (emptyNotice) emptyNotice.classList.add('d-none');
+  if (chartWrapper) chartWrapper.style.display = 'block';
+
+  const canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+
+  if (trendChartInstance) {
+    trendChartInstance.data.labels = labels;
+    trendChartInstance.data.datasets[0].data = data;
+    trendChartInstance.data.datasets[0].pointRadius = labels.length > 30 ? 2 : 4;
+    trendChartInstance.options.scales.x.ticks.maxTicksLimit = Math.min(labels.length, 14);
+    trendChartInstance.update();
+    trendChartInstance.resize();
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(47, 93, 140, 0.35)');
+  gradient.addColorStop(1, 'rgba(47, 93, 140, 0.02)');
+
+  trendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Students Present',
+        data: data,
+        borderColor: '#2f5d8c',
+        borderWidth: 2.5,
+        backgroundColor: gradient,
+        tension: 0.3,
+        fill: true,
+        pointBackgroundColor: '#2f5d8c',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: labels.length > 30 ? 2 : 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1f3f61',
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            label: function(context) {
+              return 'Students Present: ' + context.parsed.y;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            color: '#6c757d',
+            font: { size: 11 }
+          },
+          grid: {
+            color: '#f0f3f6'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#6c757d',
+            font: { size: 11 },
+            maxRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: Math.min(labels.length, 14)
+          },
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+}
+
+function showEmptyTrendState(startDate, endDate) {
+  const chartWrapper = document.getElementById('chartWrapper');
+  const emptyNotice = document.getElementById('emptyStateNotice');
+  const errorAlert = document.getElementById('dateValidationError');
+
+  if (errorAlert) errorAlert.classList.add('d-none');
+  if (chartWrapper) chartWrapper.style.display = 'none';
+  if (emptyNotice) emptyNotice.classList.remove('d-none');
+}
+
+function showValidationError(message) {
+  const errorAlert = document.getElementById('dateValidationError');
+  const errorMsg = document.getElementById('dateValidationMsg');
+  const chartWrapper = document.getElementById('chartWrapper');
+  const emptyNotice = document.getElementById('emptyStateNotice');
+
+  if (errorAlert && errorMsg) {
+    errorMsg.textContent = message;
+    errorAlert.classList.remove('d-none');
+  }
+  if (chartWrapper) chartWrapper.style.display = 'none';
+  if (emptyNotice) emptyNotice.classList.add('d-none');
+}
+
+function updateSummaryChips(startDate, endDate, labels, counts) {
+  const chipRange = document.getElementById('chipRange');
+  const chipDays = document.getElementById('chipDays');
+  const chipTotal = document.getElementById('chipTotal');
+  const chipPeak = document.getElementById('chipPeak');
+
+  if (chipRange) chipRange.textContent = startDate + ' to ' + endDate;
+  if (chipDays) chipDays.textContent = labels ? labels.length : 0;
+
+  const totalSum = (counts && counts.length) ? counts.reduce((acc, val) => acc + val, 0) : 0;
+  if (chipTotal) chipTotal.textContent = totalSum;
+
+  const peak = (counts && counts.length) ? Math.max(...counts) : 0;
+  if (chipPeak) chipPeak.textContent = peak;
+}
+
+async function fetchAndApplyDateRange(startDate, endDate) {
+  const btnSpinner = document.getElementById('btnSpinner');
+  const applyBtn = document.getElementById('applyDateBtn');
+  const errorAlert = document.getElementById('dateValidationError');
+
+  startDate = (startDate || '').trim();
+  endDate = (endDate || '').trim();
+
+  // Validate presence
+  if (!startDate || !endDate) {
+    showValidationError('Please choose both a Start Date and an End Date.');
+    return;
+  }
+
+  // Validate Start Date <= End Date using direct ISO string comparison
+  if (startDate > endDate) {
+    showValidationError('Start Date cannot be after End Date. Please select a valid range.');
+    return;
+  }
+
+  if (errorAlert) errorAlert.classList.add('d-none');
+  if (btnSpinner) btnSpinner.classList.remove('d-none');
+  if (applyBtn) applyBtn.disabled = true;
+
+  try {
+    const res = await fetch(`/dashboard/attendance-trend?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      showValidationError(data.error || 'Failed to retrieve attendance records for this date range.');
+      return;
+    }
+
+    updateSummaryChips(data.start_date, data.end_date, data.labels, data.counts);
+
+    if (!data.has_data || !data.labels || data.labels.length === 0) {
+      showEmptyTrendState(data.start_date, data.end_date);
+    } else {
+      renderOrUpdateChart(data.labels, data.counts);
+    }
+  } catch (err) {
+    console.error('Error fetching trend data:', err);
+    showValidationError('An error occurred while connecting to the server. Please try again.');
+  } finally {
+    if (btnSpinner) btnSpinner.classList.add('d-none');
+    if (applyBtn) applyBtn.disabled = false;
+  }
+}
+
+function formatDateISO(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function applyPreset(days) {
+  const today = new Date();
+  const past = new Date();
+  past.setDate(today.getDate() - (days - 1));
+
+  const startStr = formatDateISO(past);
+  const endStr = formatDateISO(today);
+
+  const startInput = document.getElementById('startDate');
+  const endInput = document.getElementById('endDate');
+  if (startInput) startInput.value = startStr;
+  if (endInput) endInput.value = endStr;
+
+  fetchAndApplyDateRange(startStr, endStr);
+}
+
+function applyAllTime() {
+  const startStr = minAvailableDate || '2026-01-01';
+  const endStr = maxAvailableDate || formatDateISO(new Date());
+
+  const startInput = document.getElementById('startDate');
+  const endInput = document.getElementById('endDate');
+  if (startInput) startInput.value = startStr;
+  if (endInput) endInput.value = endStr;
+
+  fetchAndApplyDateRange(startStr, endStr);
+}
+
+function initDashboardTrend() {
+  const startInput = document.getElementById('startDate');
+  const endInput = document.getElementById('endDate');
+  const applyBtn = document.getElementById('applyDateBtn');
+  const form = document.getElementById('dateRangeForm');
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      fetchAndApplyDateRange(startInput.value, endInput.value);
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetchAndApplyDateRange(startInput.value, endInput.value);
+    });
+  }
+
+  const sVal = startInput ? startInput.value : '';
+  const eVal = endInput ? endInput.value : '';
+
+  updateSummaryChips(sVal, eVal, initialLabels, initialData);
+
+  if (initialHasData && initialLabels && initialLabels.length > 0) {
+    renderOrUpdateChart(initialLabels, initialData);
+  } else {
+    showEmptyTrendState(sVal, eVal);
+  }
+}
+
+// Guarantee execution regardless of document ready state
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboardTrend);
+} else {
+  initDashboardTrend();
+}
 </script>
 {% endblock %}
